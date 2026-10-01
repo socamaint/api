@@ -1,5 +1,6 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
+staticfiles/
 *.py[cod]
 *$py.class
 
@@ -62,6 +63,7 @@ __pypackages__/
 .env
 .venv
 env/
+socamarenv/
 venv/
 ENV/
 env.bak/

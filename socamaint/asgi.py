@@ -11,6 +11,9 @@ import os
 
 from django.core.asgi import get_asgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'socamaint.settings')
+settings_module = 'socamaint.deployment_settings' if 'RENDER_EXTERNAL_HOSTNAME' in os.environ else 'socamaint.settings'
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', settings_module)
+
+# os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'socamaint.settings')
 
 application = get_asgi_application()

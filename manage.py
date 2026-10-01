@@ -6,7 +6,9 @@ import sys
 
 def main():
     """Run administrative tasks."""
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'socamaint.settings')
+    settings_module = 'socamaint.deployment_settings' if 'RENDER_EXTERNAL_HOSTNAME' in os.environ else 'socamaint.settings'
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', settings_module)
+    # os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'socamaint.settings')
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:

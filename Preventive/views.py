@@ -4,6 +4,7 @@ from rest_framework.generics import CreateAPIView, ListAPIView, RetrieveUpdateAP
 from rest_framework.response import Response
 from rest_framework import status
 from .models import *
+import datetime
 from django.db.models import Q
 from Preventive.PreventSerializer import *
 from django_filters.rest_framework import DjangoFilterBackend
@@ -104,49 +105,53 @@ class CreateSuiviEP(CreateAPIView):
         EP_PL = ['150 H', '300 H', '450 H', '600 H', '750 H', '900 H', '1050 H', '1200 H']
         list_epch = ["CH SF", "CH DF"]
         data = request.data.copy()
-        veh = Vehicules.objects.filter(id=data["veh"]).first()
-
-        if veh.type in list_epch:
-            cpt_next = int(data["cpt_last_ep"]) + 250
-            data["cpt_next_ep"] = cpt_next
-            ecrt = int(data["cpt_actuel"]) - cpt_next
-            data["ecart"] = ecrt
-            i = int(EP_MN.index(data["last_ep"])) + 9
-            data['program_ep'] = EP_MN[i % 8]
-
-        elif veh.type == "VL":
-            cpt_next = int(data["cpt_last_ep"]) + 5000
-            data["cpt_next_ep"] = cpt_next
-            ecrt = int(data["cpt_actuel"]) - cpt_next
-            data["ecart"] = ecrt
-            i = int(EP_VL.index(data["last_ep"])) + 7
-            data['program_ep'] = EP_VL[i % 6]
-
-        elif veh.type == "PL":
-            cpt_next = int(data["cpt_last_ep"]) + 150
-            data["cpt_next_ep"] = cpt_next
-            ecrt = int(data["cpt_actuel"]) - cpt_next
-            data["ecart"] = ecrt
-            i = int(EP_PL.index(data["last_ep"])) + 9
-            data['program_ep'] = EP_PL[i % 8]
-
         
-        if ecrt >= veh.alert_compt and ecrt <= 0:
-            stat = "A VIDANGER"
+        suivi = SuiviEp.objects.filter(vehicule_id=data["vehicule"]).first()
+        if suivi != None:
+            return Response({'message': "Le suivi de cet engin existe déjà. Vous pouvez plutôt le modifier!"},  status=status.HTTP_406_NOT_ACCEPTABLE)
+        else:
+            veh = Vehicules.objects.filter(id=data["vehicule"]).first()
+            if veh.type in list_epch:
+                cpt_next = int(data["cpt_last_ep"]) + 250
+                data["cpt_next_ep"] = cpt_next
+                ecrt = int(data["cpt_actuel"]) - cpt_next
+                data["ecart"] = ecrt
+                i = int(EP_MN.index(data["last_ep"])) + 9
+                data['program_ep'] = EP_MN[i % 8]
 
-        elif ecrt > 0:  
-            stat = "EN DEPASSEMENT"
+            elif veh.type == "VL":
+                cpt_next = int(data["cpt_last_ep"]) + 5000
+                data["cpt_next_ep"] = cpt_next
+                ecrt = int(data["cpt_actuel"]) - cpt_next
+                data["ecart"] = ecrt
+                i = int(EP_VL.index(data["last_ep"])) + 7
+                data['program_ep'] = EP_VL[i % 6]
 
-        else:      
-            stat = "RAS"
+            elif veh.type == "PL":
+                cpt_next = int(data["cpt_last_ep"]) + 150
+                data["cpt_next_ep"] = cpt_next
+                ecrt = int(data["cpt_actuel"]) - cpt_next
+                data["ecart"] = ecrt
+                i = int(EP_PL.index(data["last_ep"])) + 9
+                data['program_ep'] = EP_PL[i % 8]
 
-        data["statut"] = stat
+            
+            if ecrt >= veh.alert_compt and ecrt <= 0:
+                stat = "A VIDANGER"
 
-        suivi = SuiviEpSerializer(data=data)
-        suivi.is_valid(raise_exception=True)
-        suivi.save()
-        
-        return Response(suivi.data, status=status.HTTP_201_CREATED)
+            elif ecrt > 0:  
+                stat = "EN DEPASSEMENT"
+
+            else:      
+                stat = "RAS"
+
+            data["statut"] = stat
+
+            suivi = SuiviEpSerializer(data=data)
+            suivi.is_valid(raise_exception=True)
+            suivi.save()
+            
+            return Response(suivi.data, status=status.HTTP_201_CREATED)
 
 
 class ListSuiviEP(ListAPIView):
@@ -154,29 +159,38 @@ class ListSuiviEP(ListAPIView):
     queryset = SuiviEp.objects.all()
     parser_classes = [FormParser, MultiPartParser]
     filter_backends = [DjangoFilterBackend, SearchFilter]
-    search_fields = ["veh", "statut", "program_ep", "last_ep"]
+    search_fields = ["vehicule", "statut", "program_ep", "last_ep"]
     ordering_fields = ["statut"]
     pagination_class = PageNumberPagination
 
 
 
-class UpSuiviEP(RetrieveUpdateAPIView):
-    serializer_class = SuiviEpSerializer
+class UpdateSuiviEP(RetrieveUpdateAPIView):
+    serializer_class = UpdateSuiviEpSerializer
     queryset = SuiviEp.objects.all()
     parser_classes = [FormParser, MultiPartParser]
 
+    def perform_update(self, serializer):
+        return super().perform_update(serializer)
+
     def patch(self, request, *args, **kwargs):
         list_epch = ["CH SF", "CH DF"]
+        EP_MN = ['250 H', '500 H', '750 H', '1000 H', '1250 H', '1500 H', '1750 H', '2000 H']
+        EP_VL = ['5000 KM', '10000 KM', '15000 KM', '20000 KM', '25000 KM', '30000 KM']
+        EP_PL = ['150 H', '300 H', '450 H', '600 H', '750 H', '900 H', '1050 H', '1200 H']
         partial = kwargs.pop('partial', False) # Detects if PATCH or PUT was used
         instance = self.get_object()
+        data=request.data
 
         if instance.type in list_epch:
             cpt_next = int(instance["cpt_last_ep"]) + 250
             instance["cpt_next_ep"] = cpt_next
-            ecrt = int(instance["cpt_actuel"]) - cpt_next
-            instance["ecart"] = ecrt
+            # ecrt = int(instance["cpt_actuel"]) - cpt_next
+            # instance["ecart"] = ecrt
             i = int(EP_MN.index(instance["last_ep"])) + 9
             instance['program_ep'] = EP_MN[i % 8]
+            # data["ecart"] = ecrt
+            data["program_ep"] = EP_MN[i % 8]
         
         elif instance.type == "VL":
             cpt_next = int(instance["cpt_last_ep"]) + 5000
@@ -185,6 +199,8 @@ class UpSuiviEP(RetrieveUpdateAPIView):
             instance["ecart"] = ecrt
             i = int(EP_VL.index(instance["last_ep"])) + 7
             instance['program_ep'] = EP_VL[i % 6]
+            data["ecart"] = ecrt
+            data['program_ep'] = EP_VL[i % 6]
         
         elif instance.type == "PL":
             cpt_next = int(instance["cpt_last_ep"]) + 150
@@ -193,6 +209,8 @@ class UpSuiviEP(RetrieveUpdateAPIView):
             instance["ecart"] = ecrt
             i = int(EP_PL.index(instance["last_ep"])) + 9
             instance['program_ep'] = EP_PL[i % 8]
+            data["ecart"] = ecrt
+            data['program_ep'] = EP_PL[i % 8]
         
         
         if ecrt >= instance.alert_compt and ecrt <= 0:
@@ -206,7 +224,7 @@ class UpSuiviEP(RetrieveUpdateAPIView):
         
         data["statut"] = stat
 
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer = self.get_serializer(instance, data=data, partial=partial)
         
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
@@ -246,13 +264,14 @@ class ImportSuiviEP(CreateAPIView):
         for k in range(len(df)):
             vehicule = Vehicules.objects.filter(noptim=str(df.iloc[k, 2]).strip()).first()
             if vehicule != None:
-                suiviep = SuiviEp.objects.filter(veh_id=vehicule.id).first()
+                suiviep = SuiviEp.objects.filter(vehicule_id=vehicule.id).first()
                 if suiviep == None:
                     impsuivi = {}                    
             
                     impsuivi['veh'] = vehicule.id
+                    impsuivi['region'] = vehicule.region
                     impsuivi['last_ep'] = str(df.iloc[k, 7]).upper()
-                    impsuivi['date_last_ep'] = str(df.iloc[k, 9]).strip().upper()
+                    impsuivi['date_last_ep'] = datetime.date.strptime(str(df.iloc[k, 9]).strip().upper(),"%Y-%m-%d %H:%M:%S") 
                     impsuivi['cpt_last_ep'] = str(df.iloc[k, 8]).strip().upper()
                     impsuivi['cpt_next_ep'] = str(df.iloc[k, 10]).strip().upper()
                     impsuivi['cpt_actuel'] = str(df.iloc[k, 11]).strip().upper()

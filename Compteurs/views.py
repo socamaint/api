@@ -4,6 +4,8 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from Ressources.models import Vehicules
 from .models import Compteur
+from Preventive.models import SuiviEp
+from Preventive.PreventSerializer import SuiviEpSerializer
 from .CompteurSerializer import CompteurSerializer
 from Ressources.models import NewUser
 from rest_framework import status
@@ -38,16 +40,37 @@ class CompteurCreate(ModelViewSet):
         
         else:
 
+            data_s = {}
+            vehicule = Vehicules.objects.filter(id=self.kwargs['engin_pk']).first()
+            data =  request.data.copy()
+            stat = ""
             datacopy =  request.data.copy()
-                        
-            last_enrg = Compteur.objects.filter(vehicule_id=self.kwargs['engin_pk']).last()
-            print("******------------*************--------------***********---------\n")
-            print(last_enrg)
-            if last_enrg != None:
-                if int(datacopy['compt_act']) >= int(last_enrg.compt_act):
-                    datacopy['last_compt'] = last_enrg.compt_act
-                    datacopy['start_compt'] = last_enrg.start_compt
-                    datacopy['ecart'] = int(datacopy['compt_act']) - int(last_enrg.start_compt)
+            suivi = SuiviEp.objects.filter(vehicule_id=self.kwargs['engin_pk']).first()
+            if suivi != None:
+                if int(datacopy['compt_act']) >= int(suivi.cpt_actuel):
+                    ecrt = int(data["compt_act"]) - int(suivi.cpt_next_ep)
+                    alertcompt = int(vehicule.alert_compt)
+                    
+                    if ecrt >= alertcompt and ecrt <= 0:
+                        stat = "A VIDANGER"
+                    elif ecrt > 0:   
+                        stat = "EN DEPASSEMENT"
+                    else:  
+                        stat = "RAS"
+
+
+                    data_s['vehicule'] = self.kwargs['engin_pk']
+                    data_s['cpt_actuel'] = data["compt_act"]
+                    data_s['ecart'] = ecrt
+                    data_s['statut'] = stat
+
+                    serializer = SuiviEpSerializer(suivi, data=data_s, partial=True)
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save()
+                
+                    datacopy['last_compt'] = suivi.cpt_actuel
+                    datacopy['start_compt'] = suivi.cpt_last_ep
+                    datacopy['ecart'] = int(datacopy['compt_act']) - int(suivi.cpt_next_ep)
                     print(datacopy['ecart'])
                     print("********************------------------------------\n")
                     datacopy['user_compt'] = self.request.user.id
@@ -60,9 +83,27 @@ class CompteurCreate(ModelViewSet):
                     return Response({'message': "Compteur incorrect, donnant un écart négatif avec le précédent"},  status=status.HTTP_406_NOT_ACCEPTABLE)
         
             else:
-                datacopy['last_compt'] = datacopy['compt_act']
+                data_t = data.copy()
+
+                data_t['vehicule'] = self.kwargs['engin_pk']
+                data_t['region'] = vehicule.region
+                data_t['cpt_last_ep'] = 0
+                data_t['cpt_next_ep'] = int(data['compt_act']) + 250
+                data_t['cpt_actuel'] = data['compt_act']
+                data_t['start_compt'] = data['compt_act']
+                data_t['ecart'] = 0
+                data_t['statut'] = "RAS"
+                data_t['responsable'] = vehicule.responsable_sabc
+
+                serializer = SuiviEpSerializer(data=data_t)
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+
                 datacopy['start_compt'] = datacopy['compt_act']
+                datacopy['user_compt'] = self.request.user.id
                 datacopy['ecart'] = 0
+                print(datacopy['ecart'])
+                print("********************------------------------------\n")
                 datacopy['user_compt'] = self.request.user.id
 
                 serializer = self.get_serializer(data=datacopy)

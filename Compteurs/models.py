@@ -16,7 +16,7 @@ class Compteur(models.Model):
     compt_act           = models.PositiveIntegerField(blank=True, null=True)
     date_compt          = models.DateTimeField(auto_now_add=True)
     user_compt          = models.ForeignKey(NewUser, on_delete=models.SET_NULL, null=True, related_name="compteur_user")
-    ecart               = models.PositiveIntegerField(blank=True, null=True)
+    ecart               = models.FloatField()
     statut_compt        = models.CharField(max_length=15, choices=STATUT_COMPT, default="USUEL")
 
     def __str__(self):

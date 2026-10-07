@@ -38,20 +38,39 @@ class SuiviEp(models.Model):
 
     ]
 
-    veh = models.ForeignKey(Vehicules, on_delete=models.SET_NULL, null=True, related_name="suivi_veh")
+    vehicule = models.ForeignKey(Vehicules, on_delete=models.SET_NULL, null=True, related_name="suivi_veh")
+    region = models.CharField("Région", max_length=50, null=True, blank=True)
     last_ep = models.CharField(max_length=10, blank=True, null=True, choices=EP)
     date_last_ep = models.DateField(max_length=30, blank=True, null=True)
     cpt_last_ep = models.PositiveIntegerField()
     cpt_next_ep = models.PositiveIntegerField()
     cpt_actuel = models.PositiveIntegerField()
-    ecart = models.FloatField()
-    statut = models.CharField(max_length=30, blank=True, null=True, choices=STATUT)
+    # ecart = models.FloatField()
+    # statut = models.CharField(max_length=30, blank=True, null=True, choices=STATUT)
     program_ep = models.CharField(max_length=20, choices=EP, blank=True, null=True)
     bt = models.CharField(max_length=30, blank=True, null=True)
     responsable = models.CharField(max_length=255, blank=True, null=True)
 
+
+    @property
+    def ecart(self):
+        return self.cpt_actuel - self.cpt_next_ep
+
+
+    @property
+    def statut(self):
+        alt = self.vehicule.alert_compt
+        if self.ecart >= alt and self.ecart <= 0:
+            stat =  "A VIDANGER"
+        elif self.ecart > 0:  
+            stat = "EN DEPASSEMENT"
+        else:
+            stat = "RAS"
+        return stat
+
+
     def __str__(self):
-        return f"{self.veh} - {self.statut} - {self.program_ep}"
+        return f"{self.vehicule} - {self.statut} - {self.program_ep}"
 
 
 

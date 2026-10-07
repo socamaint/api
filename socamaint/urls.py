@@ -8,6 +8,7 @@ from rest_framework_nested import routers
 from Entreprises.views import EseViews, ImportEnginView, VehiculeViewSet
 from Compteurs.views import CompteurCreate
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
+from Preventive.views import ImportSuiviEP, ListSuiviEP, CreateSuiviEP, UpdateSuiviEP
 
 router = routers.DefaultRouter()
 
@@ -31,6 +32,12 @@ urlpatterns = [
     path('liste-user', ListNewUser.as_view(), name='liste-user'),
 
     path('import-engins', ImportEnginView.as_view(), name="import-engins"),
+
+    path('import-suiviep', ImportSuiviEP.as_view(), name="import-suiviep"),
+    path('list-suiviep', ListSuiviEP.as_view(), name="list-suiviep"), 
+    path('create-suiviep', CreateSuiviEP.as_view(), name="create-suiviep"),
+    path('update-suiviep/<str:pk>', UpdateSuiviEP.as_view(), name="update-suiviep"),
+    
 
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     # Optional UI:

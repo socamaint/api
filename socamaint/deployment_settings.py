@@ -14,6 +14,7 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 import dj_database_url
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -96,13 +97,26 @@ REST_FRAMEWORK = {
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
+# DATABASES = {
+#     "default": dj_database_url.config(
+#         default=f"postgres://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}",
+#         conn_max_age=600,
+#         conn_health_checks=True,
+#     )
+# }
+
 DATABASES = {
-    "default": dj_database_url.config(
-        default=f"postgres://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}",
-        conn_max_age=600,
-        conn_health_checks=True,
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': config('DATABASE_NAME'),
+        'USER': config('DATABASE_USER'),
+        'PASSWORD': config('DATABASE_PASSWORD'),
+        'HOST': config('DATABASE_HOST'),
+        'PORT': config('DATABASE_PORT')
+    }
 }
+
+DATABASES['default'] = dj_database_url.parse("postgresql://socamarappsdb_user:fF893ko1z2eCJNVQ7aBcingsJO9fsEeo@dpg-db363aflk1mc739i48r0-a.oregon-postgres.render.com/socamarappsdb")
 
 
 # Password validation

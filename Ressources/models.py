@@ -117,7 +117,7 @@ class NewUser(AbstractBaseUser,PermissionsMixin):
     objects = ClientUserManager()
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username','last_name', 'mobile', 'type', 'first_name', 'region', 'site']
+    REQUIRED_FIELDS = ['username','last_name', 'mobile', 'type', 'first_name', 'region', 'site', 'address', 'fonction']
 
 
     @property
